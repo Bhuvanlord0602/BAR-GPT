@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BAR GPT</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #chat-container {
+            background: var(--container-bg);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+            transition: background-color 0.3s;
+        }
+
+        #header {
+            background: #007bff;
+            color: #ffffff;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        #messageArea {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: var(--message-area-bg);
+            transition: background-color 0.3s;
+        }
+
+        .user-message, .bot-message {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .bot-message {
+            justify-content: flex-start;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin: 0 10px;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        .user-message .message {
+            background: #007bff;
+            color: #ffffff;
+            border-top-right-radius: 0;
+        }
+
+        .bot-message .message {
+            background: #e9e9eb;
+            color: #333;
+            border-top-left-radius: 0;
+        }
+
+        .time {
+            font-size: 12px;
+            color: var(--time-color);
+            align-self: flex-end;
+        }
+
+        #messageForm {
+            display: flex;
+            border-top: 1px solid var(--form-border-color);
+            background-color: var(--form-bg);
+            padding: 10px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        #text {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--input-color);
+            margin-right: 10px;
+            padding-left: 15px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #messageForm button {
+            padding: 10px 20px;
+            border: none;
+            background: #007bff;
+            color: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        #messageForm button:hover {
+            background: #0056b3;
+        }
+
+        .dark-mode {
+            --container-bg: #333;
+            --message-area-bg: #444;
+            --form-bg: #555;
+            --input-bg: #666;
+            --input-color: #ddd;
+            --time-color: #bbb;
+            --form-border-color: #666;
+            background-color: #222;
+            color: #ddd;
+        }
+
+        .light-mode {
+            --container-bg: #ffffff;
+            --message-area-bg: #fafafa;
+            --form-bg: #fff;
+            --input-bg: #f1f1f1;
+            --input-color: #000;
+            --time-color: #999;
+            --form-border-color: #e9e9eb;
+            background-color: #f2f2f2;
+            color: #000;
+        }
+
+        #themeToggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #themeToggle:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <button id="themeToggle">Switch to Dark Mode</button>
+    <div id="chat-container">
+        <div id="header">BAR GPT</div>
+        <div id="messageArea"></div>
+        <form id="messageForm">
+            <input type="text" id="text" name="msg" autocomplete="off" placeholder="Type a message...">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+
+            themeToggle.addEventListener('click', () => {
+                if (body.classList.contains('light-mode')) {
+                    body.classList.remove('light-mode');
+                    body.classList.add('dark-mode');
+                    themeToggle.textContent = 'Switch to Light Mode';
+                } else {
+                    body.classList.remove('dark-mode');
+                    body.classList.add('light-mode');
+                    themeToggle.textContent = 'Switch to Dark Mode';
+                }
+            });
+
+            $("#messageForm").submit(function(event) {
+                event.preventDefault();
+                var hour = new Date().getHours();
+                var minute = new Date().getMinutes();
+                var stringTime = hour + ":" + (minute < 10 ? "0" + minute : minute);
+                var rawText = $("#text").val();
+                var userHTML = `<div class="user-message">
+                                    <span class="message">${rawText}</span>
+                                    <span class="time">${stringTime}</span>
+                                </div>`;
+                $("#messageArea").append(userHTML);
+                $("#messageArea").scrollTop($("#messageArea")[0].scrollHeight);
+
+                $.ajax({
+                    type: "POST",
+                    url: "/chat",
+                    data: {msg: rawText},
+                    success: function(data) {
+                        var botHTML = `<div class="bot-message">
+                                            <span class="message">${data.response}</span>
+                                            <span class="time">${stringTime}</span>
+                                        </div>`;
+                        $("#messageArea").append(botHTML);
+                        $("#messageArea").scrollTop($("#messageArea")[0].scrollHeight);
+                        $("#text").val("");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
